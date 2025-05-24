@@ -1,20 +1,44 @@
 from pathlib import Path
 from logging import Logger
+import subprocess
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
 
-from src.config import setup_logger
+from src.config import setup_logger, BASE_DIR
 
-logger: Logger = setup_logger(__name__) 
+logger: Logger = setup_logger(__name__)
 
 def find_supported_files(folder_path: Path) -> list[Path]:
-    """Находит все поддерживаемые файлы в указанной папке"""
-    supported_extensions: list[str] = ['.pdf', '.docx', '.txt']
-    files: list = []
+    """Находит все поддерживаемые файлы в указанной папке, конвертируя .odt в .docx на месте"""
+    supported_extensions: list[str] = ['.pdf', '.docx', '.txt', '.odt']
+    files = []
+    
+    # Обрабатываем все файлы с поддерживаемыми расширениями
     for ext in supported_extensions:
-        files.extend(folder_path.glob(f'*{ext}'))
+        logger.info("Ищем файлы с расширением %s в папке %s", ext, folder_path)
+        for file in folder_path.glob(f'*{ext}'):
+            if file.suffix == '.odt':
+                # Создаем путь для .docx файла
+                docx_file = file.with_suffix('.docx')
+                
+                # Конвертируем .odt в .docx
+                try:
+                    subprocess.run(
+                        ["pandoc", str(file), "-o", str(docx_file)],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE
+                    )
+                    files.append(docx_file)  # Добавляем конвертированный файл
+                except subprocess.CalledProcessError as e:
+                    logger.info("Ошибка при конвертации %s: %s}", file, e.stderr.decode('utf-8'))
+                    continue
+            else:
+                files.append(file)  # Добавляем файлы других форматов как есть
+    
     return files
+
 
 def document_generator(
     folder_path: Path,
