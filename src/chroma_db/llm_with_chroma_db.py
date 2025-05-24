@@ -19,7 +19,7 @@ class ChatWithLLM:
             verify_ssl_certs=False,
             )
         
-    def response(self, query: str, formatted_context: str, tools: list):
+    async def response(self, query: str, formatted_context: str, tools: list):
         """Генерация ответа на основе запроса и контекста."""
         messages = [
             SystemMessage(content="""
@@ -38,7 +38,7 @@ class ChatWithLLM:
 
         llm_with_tools = self.llm.bind_tools(tools)
 
-        ai_msg = llm_with_tools.invoke(messages)
+        ai_msg = await llm_with_tools.ainvoke(messages)
 
         messages.append(ai_msg)
 
@@ -46,10 +46,10 @@ class ChatWithLLM:
             # Модель вызвала функцию
             for tool_call in ai_msg.tool_calls:
                 selected_tool = {"save_file": save_file}[tool_call["name"].lower()]
-                tool_output = selected_tool.invoke(tool_call["args"])
+                tool_output = await selected_tool.ainvoke(tool_call["args"])
                 messages.append(ToolMessage(tool_output, tool_call_id=tool_call["id"]))
             
         else:
             # Простое получение результата без вызова функции
-            response = llm_with_tools.invoke(messages)
+            response = await llm_with_tools.ainvoke(messages)
             print(f"Ответ: {response.content}")
