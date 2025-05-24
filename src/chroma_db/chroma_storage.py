@@ -1,5 +1,6 @@
 from logging import Logger
 import time
+import shutil
 from typing import Literal
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from src.config import BASE_DIR, settings, setup_logger
-from chroma_db.utils import document_generator
+from src.chroma_db.utils import document_generator
 
 logger: Logger = setup_logger(__name__) 
 
@@ -75,6 +76,8 @@ class ChromaVectorStorage:
                ids=ids
            )
            logger.info("База данных создана за %.2f сек", time.time() - start_time)
+           shutil.rmtree(folder_path)
+           logger.info("Папка удалена")
            
            return db
        except Exception as e:
@@ -148,3 +151,8 @@ class ChromaVectorStorage:
        except Exception as e:
            logger.error("❌ Ошибка при поиске: %s", e)
            raise
+
+if __name__ == "__main__":
+    vector_storage = ChromaVectorStorage(name_vector_storage="my_collection_test")
+    vector_storage.create(folder_path=Path(BASE_DIR / "upload_files" / "test"), persist_dir="src/chroma_db/vector_db")
+   
