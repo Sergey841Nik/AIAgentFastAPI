@@ -18,6 +18,7 @@ BASE_DIR: Path = Path(__file__).parent.parent
 class Settings(BaseSettings):
     # chroma vector db
     GIGACHAT_API_KEY: SecretStr
+    LM_MODEL_NAME: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
     # db config
     DB_HOST: str
@@ -61,7 +62,7 @@ def setup_logger(name: str = "my_project") -> Logger:
 
     # Обработчик для записи в файл (ротация по дням)
     file_handler = handlers.TimedRotatingFileHandler(
-        filename=logs_dir / "my_project.log", when="midnight", backupCount=7, encoding="utf-8"
+        filename=logs_dir / "aiagent.log", when="midnight", backupCount=7, encoding="utf-8"
     )
     file_handler.setFormatter(formatter)
     file_handler.setLevel(ERROR)  # В файл пишем INFO и выше
