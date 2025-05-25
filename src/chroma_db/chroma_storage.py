@@ -105,7 +105,7 @@ class ChromaVectorStorage:
 
            # Инициализируем соединение с базой данных Chroma
            self._store = Chroma(
-               persist_directory=BASE_DIR / "src" / "chroma_db" / "vector_db",
+               persist_directory="src/chroma_db/vector_db",
                embedding_function=embeddings,
                collection_name=self.name_vector_storage,
            )
@@ -151,8 +151,20 @@ class ChromaVectorStorage:
        except Exception as e:
            logger.error("❌ Ошибка при поиске: %s", e)
            raise
+       
+# chroma_vector_storage = ChromaVectorStorage(name_vector_storage="my_collection")
+
+# def get_vectorstore() -> ChromaVectorStorage:
+#     return chroma_vector_storage
 
 if __name__ == "__main__":
+    import asyncio
     vector_storage = ChromaVectorStorage(name_vector_storage="my_collection_test")
-    vector_storage.create(folder_path=Path(BASE_DIR / "upload_files" / "test"), persist_dir="src/chroma_db/vector_db")
+    # vector_storage.create(folder_path=Path(BASE_DIR / "upload_files" / "test"), persist_dir="src/chroma_db/vector_db")
+    async def main():
+        await vector_storage.init()
+        results = await vector_storage.asimilarity_search(query="Как создать слои", with_score=True, k=5)
+        print(results)
+    asyncio.run(main())
+
    
