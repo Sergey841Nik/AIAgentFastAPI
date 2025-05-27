@@ -1,11 +1,15 @@
+from logging import Logger
 from pathlib import Path
 
 from fastapi import APIRouter, UploadFile, File
 
 from src.api.upload import upload_files
 from src.api.schemas import UploadFileSchemas, AskResponse
-from src.config import BASE_DIR
+from src.config import BASE_DIR, setup_logger
 from src.chroma_db.chroma_storage import ChromaVectorStorage
+from src.chroma_db.llm_with_chroma_db import ChatWithLLM
+
+logger: Logger = setup_logger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -23,7 +27,7 @@ def create_vector_storage() -> dict[str, str]:
 @router.post("/ask")
 async def ask(
     query: AskResponse,
-):
+)-> dict[str, list]:
     vectorstore = ChromaVectorStorage(name_vector_storage="my_collection_test")
     await vectorstore.init()
     results = await vectorstore.asimilarity_search(
@@ -38,3 +42,19 @@ async def ask(
             "similarity_score": score,
         })
     return {"results": formatted_results}
+
+@router.post("/chat")
+async def chat_with_llm(
+    query: AskResponse,
+):
+    vectorstore = ChromaVectorStorage(name_vector_storage="my_collection_test")
+    await vectorstore.init()
+    results = await vectorstore.asimilarity_search(
+        query=query.response, with_score=True, k=5
+    )
+    formatted_context = "\n".join([doc.page_content for doc, _ in results])
+    logger.info("Контекст:\n%s", formatted_context)
+  
+    llm = ChatWithLLM()
+    respons = llm.response(query=query.response, formatted_context=formatted_context)
+    return {"response": respons}
