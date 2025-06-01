@@ -14,31 +14,32 @@ from src.config import setup_logger
 
 logger: Logger = setup_logger(__name__)
 
+
 def get_token(request: Request) -> str:
-    token = request.cookies.get('access_token')
+    token = request.cookies.get("access_token")
 
     if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                             detail='Токен истек')
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен истек"
+        )
     return token
 
 
 async def get_current_user(
-        token: str = Depends(get_token),
-        session: AsyncSession = Depends(db_helper.get_session_without_commit),
-):
+    token: str = Depends(get_token),
+    session: AsyncSession = Depends(db_helper.get_session_without_commit),
+) -> User | None:
     try:
         payload = decoded_jwt(token)
     except InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                               detail='Токен не валидный')
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен не валидный"
+        )
 
-    user_email: str = payload.get('sub')
+    user_email: str = payload.get("sub")
     dao = AuthDao(session)
-    user = await dao.find_one_or_none(filters=EmailModel(email=user_email))
+    user: User | None = await dao.find_one_or_none(filters=EmailModel(email=user_email))
 
     logger.info("Найден пользователь %s", user)
-    
-    return user
 
-                               
+    return user

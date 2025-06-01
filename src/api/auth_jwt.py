@@ -1,4 +1,3 @@
-
 from logging import Logger
 
 from fastapi import HTTPException, status
