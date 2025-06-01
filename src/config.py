@@ -15,6 +15,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR: Path = Path(__file__).parent.parent
 
+
 class Settings(BaseSettings):
     # chroma vector db and LLM model
     GIGACHAT_API_KEY: str
@@ -39,11 +40,13 @@ class Settings(BaseSettings):
 
     # auth
     ALGORITHM: str
-    private_key_path: Path = BASE_DIR / "cert" / "private.pem"  
-    public_key_path: Path = BASE_DIR / "cert" / "public.pem" 
+    private_key_path: Path = BASE_DIR / "cert" / "private.pem"
+    public_key_path: Path = BASE_DIR / "cert" / "public.pem"
     access_token_expire: int = 15
 
+
 settings = Settings()
+
 
 def setup_logger(name: str = "my_project") -> Logger:
     """Настройка логгера с конфигурацией для вывода в файл и консоль."""
@@ -64,7 +67,10 @@ def setup_logger(name: str = "my_project") -> Logger:
 
     # Обработчик для записи в файл (ротация по дням)
     file_handler = handlers.TimedRotatingFileHandler(
-        filename=logs_dir / "aiagent.log", when="midnight", backupCount=7, encoding="utf-8"
+        filename=logs_dir / "aiagent.log",
+        when="midnight",
+        backupCount=7,
+        encoding="utf-8",
     )
     file_handler.setFormatter(formatter)
     file_handler.setLevel(ERROR)  # В файл пишем INFO и выше
