@@ -1,0 +1,18 @@
+services:
+  
+  pgdb:
+    container_name: my_postgres
+    image: postgres:17.3-alpine3.21
+    ports:
+      - 127.0.0.1:${DB_PORT}:5432
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_USER=${DB_USER}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    env_file:
+      - .env
+
+volumes:
+  pgdata:
