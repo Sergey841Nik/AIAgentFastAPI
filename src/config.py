@@ -17,8 +17,8 @@ BASE_DIR: Path = Path(__file__).parent.parent
 
 class Settings(BaseSettings):
     # chroma vector db and LLM model
-    GIGACHAT_API_KEY: SecretStr
-    MODEL_LLM_NAME: str = "GigaChat"
+    GIGACHAT_API_KEY: str
+    MODEL_LLM_NAME: str = "GigaChat-Pro"
     TEMPERATURE_LLM: float = 0.7
     SCOPE_LLM: str = "GIGACHAT_API_PERS"
     LM_MODEL_NAME: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
@@ -41,8 +41,7 @@ class Settings(BaseSettings):
     ALGORITHM: str
     private_key_path: Path = BASE_DIR / "cert" / "private.pem"  
     public_key_path: Path = BASE_DIR / "cert" / "public.pem" 
-    access_token_expire_minutes: int = 15
-    refresh_token_expire_days: int = 7
+    access_token_expire: int = 15
 
 settings = Settings()
 
