@@ -1,17 +1,57 @@
 from logging import Logger
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Depends, status, HTTPException, Form, Response
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.upload import upload_files
-from src.api.schemas import UploadFileSchemas, AskResponse
+from src.api.schemas import UploadFileSchemas, AskResponse, UserAddDB, UserAuth, EmailModel
+from src.api.dao import AuthDao
+from src.api.auth_jwt import validate_auth_user, create_access_token
+from src.core.db_helper import db_helper
 from src.config import BASE_DIR, setup_logger
-from src.chroma_db.chroma_storage import ChromaVectorStorage
+from src.chroma_db.chroma_storage import ChromaVectorStorage, get_chroma_storage
 from src.chroma_db.llm_with_chroma_db import ChatWithLLM
 
 logger: Logger = setup_logger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
+
+@router.post("/register/", status_code=status.HTTP_201_CREATED)
+async def register_users(
+    user: UserAddDB, 
+    session: AsyncSession = Depends(db_helper.get_session_with_commit)
+) -> dict:
+    dao = AuthDao(session)
+    find_user = await dao.find_one_or_none(filters=EmailModel(email=user.email))
+    if find_user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail='Пользователь уже существует')
+
+    
+    await dao.add(values=user)
+    return {'message': 'Вы успешно зарегистрированы!'}
+
+
+@router.post("/login/")
+async def auth_user(
+    response: Response,
+    user: UserAuth = Form(),
+    session: AsyncSession = Depends(db_helper.get_session_without_commit)
+) -> dict:
+                            
+    check_user = await validate_auth_user(email=user.email, password=user.password, session=session)
+
+    access_token = create_access_token(check_user)
+    response.set_cookie(key='access_token', value=access_token, httponly=True)
+    return {'ok': True, 'access_token': access_token, 'message': 'Авторизация успешна!'}
+
+
+@router.post("/logout/")
+async def logout_user(response: Response):
+    response.delete_cookie(key="access_token")
+    return {'message': 'Пользователь успешно вышел из системы'}
+
 
 @router.post("/upload")
 async def files_upload(files: list[UploadFile] = File(...)) -> list[UploadFileSchemas]:
@@ -46,15 +86,13 @@ async def ask(
 @router.post("/chat")
 async def chat_with_llm(
     query: AskResponse,
+    vectorstore: ChromaVectorStorage = Depends(get_chroma_storage),
 ):
-    vectorstore = ChromaVectorStorage(name_vector_storage="my_collection_test")
-    await vectorstore.init()
+    
     results = await vectorstore.asimilarity_search(
         query=query.response, with_score=True, k=5
     )
-    formatted_context = "\n".join([doc.page_content for doc, _ in results])
-    logger.info("Контекст:\n%s", formatted_context)
-  
+    attachments = "\n".join([doc.page_content for doc, _ in results])
     llm = ChatWithLLM()
-    respons = llm.response(query=query.response, formatted_context=formatted_context)
+    respons = llm.response(query=query.response, attachments=attachments)
     return {"response": respons}
