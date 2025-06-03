@@ -149,6 +149,6 @@ async def chat_with_llm(
         query=query.response, with_score=True, k=5
     )
     attachments = "\n".join([doc.page_content for doc, _ in results])
-    llm = ChatWithLLM()
+    llm = ChatWithLLM(model = "deepseek")
     respons = llm.response(query=query.response, attachments=attachments)
     return {"response": respons}
