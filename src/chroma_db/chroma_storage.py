@@ -4,7 +4,6 @@ import shutil
 from typing import Literal
 from pathlib import Path
 
-from async_lru import alru_cache
 from langchain_core.documents import Document
 import torch
 from langchain_chroma import Chroma
@@ -37,7 +36,7 @@ class ChromaVectorStorage:
 
     def __init__(self, user_email: str):
         if not hasattr(self, "_initialized"):  # Защита от повторной инициализации
-            self.name_vector_storage: str = f"{user_email.split(" @ ")[0]}"
+            self.name_vector_storage: str = f"{user_email.split("@")[0]}"
             self._store: Chroma | None = None
             self._initialized = False
 
@@ -76,7 +75,7 @@ class ChromaVectorStorage:
             logger.info("Количество документов: %d", len(documents))
             ids: list[str] = [f"doc_{i}" for i in range(len(documents))]
 
-            logger.info("Создание базы данных Chroma...")
+            logger.info("Создание базы данных Chroma первый раз ...")
             db: Chroma = Chroma.from_documents(
                 documents=documents,
                 embedding=embeddings,
@@ -84,6 +83,7 @@ class ChromaVectorStorage:
                 collection_name=self.name_vector_storage,
                 ids=ids,
             )
+            
             logger.info("База данных создана за %.2f сек", time.time() - start_time)
             logger.info("Документов в базе: %s", db._collection.count())
             shutil.rmtree(folder_path)
