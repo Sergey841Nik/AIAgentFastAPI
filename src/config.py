@@ -19,9 +19,11 @@ BASE_DIR: Path = Path(__file__).parent.parent
 class Settings(BaseSettings):
     # chroma vector db and LLM model
     GIGACHAT_API_KEY: str
-    MODEL_LLM_NAME: str = "GigaChat-Pro"
+    MODEL_LLM_NAME_GIGA: str = "GigaChat-Pro"
     TEMPERATURE_LLM: float = 0.7
     SCOPE_LLM: str = "GIGACHAT_API_PERS"
+    MODEL_LLM_NAME_DEEP: str = "deepseek/deepseek-chat-v3-0324:free"
+    DEEPSEEC_API_KEY: SecretStr
     LM_MODEL_NAME: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
     # db config
