@@ -2,6 +2,7 @@ import uuid
 from typing import Sequence
 
 from langchain_gigachat.chat_models import GigaChat
+from langchain_openai import ChatOpenAI
 from langchain_core.tools import BaseTool
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
@@ -16,14 +17,24 @@ logger = setup_logger(__name__)
 
 
 class ChatWithLLM:
-    def __init__(self, tools: Sequence[BaseTool] = [save_file]) -> None:
-        llm = GigaChat(
-            credentials=settings.GIGACHAT_API_KEY,
-            temperature=settings.TEMPERATURE_LLM,
-            model=settings.MODEL_LLM_NAME,
-            scope=settings.SCOPE_LLM,
-            verify_ssl_certs=False,
-        )
+    def __init__(self, model: str = "gigachat", tools: Sequence[BaseTool] = [save_file]) -> None:
+        if model == "gigachat":
+            llm = GigaChat(
+                credentials=settings.GIGACHAT_API_KEY,
+                temperature=settings.TEMPERATURE_LLM,
+                model=settings.MODEL_LLM_NAME_GIGA,
+                scope=settings.SCOPE_LLM,
+                verify_ssl_certs=False,
+            )
+
+        if model == "deepseek":
+            llm = ChatOpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                model=settings.MODEL_LLM_NAME_DEEP,
+                api_key=settings.DEEPSEEC_API_KEY,
+                temperature=settings.TEMPERATURE_LLM,
+            )
+            
         self._config: RunnableConfig = {"configurable": {"thread_id": uuid.uuid4().hex}}
 
         self.agent = create_react_agent(
@@ -31,8 +42,7 @@ class ChatWithLLM:
             tools=tools,
             checkpointer=InMemorySaver(),
         )
-
-        logger.info("✅ Модель GigaChat успешно инициализирована")
+        logger.info("✅ Модель %s успешно инициализирована", model)
 
     def response(
         self,
@@ -46,11 +56,7 @@ class ChatWithLLM:
                 content="""
                 Ты AI-помощник, работающий с контекстом информации. Ты умеешь создавать файлы по запросу. 
                 Ты умеешь отвечать на вопросы.
-                Если вопрос связан с контекстом в первую очередь бери информацию оттуда.
-                
-                Правила:
-                1. Сразу переходи к сути, без фраз типа "На основе контекста"
-                2. После запроса пользователя о создании файла или о сохранении информации вызывай функцию save_file
+                Если вопрос связан с контекстом в первую очередь бери информацию из контекста, если нет, то используй свои знания.
                 """
             ),
             HumanMessage(content=f"Вопрос: {query}\nКонтекст: {attachments}"),
